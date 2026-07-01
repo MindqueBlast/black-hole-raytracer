@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Relativistic Black Hole Ray-Tracer</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="app" class="dashboard-container">
+      <!-- HEADER -->
+      <header class="app-header">
+        <div class="logo-area">
+          <svg class="icon-glow" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="12" r="4" fill="currentColor" fill-opacity="0.2" />
+            <path d="M12 2v2M12 20v2M2 12h2M20 12h2" />
+          </svg>
+          <h1>Relativistic Black Hole Ray-Tracer</h1>
+        </div>
+        <div class="header-badges">
+          <span class="badge badge-accent">Schwarzschild Metric</span>
+          <span class="badge badge-pulse">WebGL Active</span>
+        </div>
+      </header>
+
+      <!-- MAIN CONTENT GRID -->
+      <main class="dashboard-main">
+        
+        <!-- LEFT PANEL: THE VISUAL SIMULATOR -->
+        <section class="panel left-panel">
+          <div class="canvas-container" id="canvas-container">
+            <canvas id="raytracer-canvas"></canvas>
+            
+            <!-- Canvas HUD & Sliders Overlay -->
+            <div class="canvas-overlay">
+              <div class="hud-card top-hud">
+                <div class="hud-stat">
+                  <span class="label">FPS</span>
+                  <span class="val font-mono text-cyan" id="fps-counter">60</span>
+                </div>
+                <div class="hud-stat">
+                  <span class="label">Horizon Radius (r_s)</span>
+                  <span class="val font-mono text-amber" id="rs-display">2.0M</span>
+                </div>
+                <div class="hud-stat">
+                  <span class="label">Photon Sphere (r_p)</span>
+                  <span class="val font-mono text-orange" id="rp-display">3.0M</span>
+                </div>
+              </div>
+
+              <!-- Quick Presets -->
+              <div class="hud-presets">
+                <button class="preset-btn active" id="preset-interstellar">
+                  <span>Interstellar</span>
+                </button>
+                <button class="preset-btn" id="preset-extreme">
+                  <span>Extreme Gravity</span>
+                </button>
+                <button class="preset-btn" id="preset-bare">
+                  <span>Bare Singularity</span>
+                </button>
+              </div>
+
+              <!-- HUD Bottom Controls (Glass Card Overlay) -->
+              <div class="hud-card bottom-hud controls-card">
+                <div class="control-grid">
+                  <!-- Mass Slider -->
+                  <div class="control-group">
+                    <div class="control-header">
+                      <span class="label">Singularity Mass (M)</span>
+                      <span class="val font-mono text-cyan" id="val-mass">1.0</span>
+                    </div>
+                    <input type="range" id="slider-mass" min="0.1" max="2.5" step="0.05" value="1.0" />
+                  </div>
+
+                  <!-- Disk Width -->
+                  <div class="control-group">
+                    <div class="control-header">
+                      <span class="label">Accretion Disk Radius</span>
+                      <span class="val font-mono text-cyan" id="val-disk-range">3.0 - 9.0</span>
+                    </div>
+                    <div class="range-sliders">
+                      <input type="range" id="slider-disk-inner" min="1.8" max="6.0" step="0.1" value="3.0" />
+                      <input type="range" id="slider-disk-outer" min="6.2" max="15.0" step="0.2" value="9.0" />
+                    </div>
+                  </div>
+
+                  <!-- Camera Elevation / Tilt -->
+                  <div class="control-group">
+                    <div class="control-header">
+                      <span class="label">Camera Inclination</span>
+                      <span class="val font-mono text-cyan" id="val-tilt">8°</span>
+                    </div>
+                    <input type="range" id="slider-tilt" min="-85" max="85" step="1" value="8" />
+                  </div>
+                </div>
+
+                <!-- Footer Toggles and Action Buttons -->
+                <div class="hud-actions">
+                  <div class="toggle-group">
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="toggle-doppler" checked />
+                      <span class="slider-toggle"></span>
+                      <span class="toggle-label">Doppler Beaming</span>
+                    </label>
+                    <label class="toggle-switch">
+                      <input type="checkbox" id="toggle-bare" />
+                      <span class="slider-toggle"></span>
+                      <span class="toggle-label">Naked Singularity</span>
+                    </label>
+                  </div>
+                  
+                  <div class="action-buttons">
+                    <button class="icon-btn btn-secondary" id="btn-play-pause" title="Pause Simulation">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 3 19 12 5 21 5 3" id="play-icon" class="hidden" />
+                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" id="pause-icon" />
+                      </svg>
+                    </button>
+                    
+                    <button class="icon-btn btn-secondary" id="btn-reset" title="Reset View">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                      </svg>
+                    </button>
+
+                    <button class="btn btn-primary btn-export" id="btn-export">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                      </svg>
+                      <span>Snapshot</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Resolution Scaler for Performance -->
+                <div class="res-scaler">
+                  <span class="label">Render Resolution:</span>
+                  <div class="res-options">
+                    <button class="res-btn" data-scale="0.5">Low</button>
+                    <button class="res-btn active" data-scale="0.8">Medium</button>
+                    <button class="res-btn" data-scale="1.0">High</button>
+                    <button class="res-btn" data-scale="1.5">Ultra</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- RIGHT PANEL: THE BREAKDOWN (EDUCATIONAL PANEL) -->
+        <section class="panel right-panel">
+          <div class="panel-header">
+            <h2>The Astrophysics Breakdown</h2>
+            <p class="subtitle font-mono">Decoding Spacetime Distortion</p>
+          </div>
+
+          <div class="educational-container">
+            <!-- Navigation Accordion/Tabs -->
+            <div class="accordion">
+              
+              <!-- STEP 1 -->
+              <div class="accordion-item active" data-step="1">
+                <button class="accordion-header">
+                  <span class="step-num font-mono">01</span>
+                  <h3>What are we looking at?</h3>
+                  <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+                <div class="accordion-content">
+                  <p>
+                    When observing the black hole, you see a glowing flat ring that appears to curve 
+                    <strong>above</strong>, <strong>below</strong>, and <strong>across</strong> the central darkness. 
+                    This isn't a physical cross-shaped ring! It's a flat, circular accretion disk orbiting the equator, 
+                    but the black hole's intense gravity bends the paths of light emitted behind it.
+                  </p>
+                  
+                  <div class="interactive-tip">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-cyan">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="16" x2="12" y2="12" />
+                      <line x1="12" y1="8" x2="12.01" y2="8" />
+                    </svg>
+                    <span><strong>Try it:</strong> Drag the canvas to rotate the camera. Notice how the disk remains locked in the equatorial plane, while the warped image bends dynamically to face you.</span>
+                  </div>
+
+                  <div class="physics-card">
+                    <h4>Gravitational Lensing</h4>
+                    <p>
+                      Massive objects warp the very fabric of spacetime. Light rays, which normally travel in straight lines, must follow these curves. The black hole acts as a colossal gravitational lens, magnifying and redirecting light from background structures.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- STEP 2 -->
+              <div class="accordion-item" data-step="2">
+                <button class="accordion-header">
+                  <span class="step-num font-mono">02</span>
+                  <h3>Backward Ray-Tracing</h3>
+                  <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+                <div class="accordion-content">
+                  <p>
+                    To render this simulation, the app uses <strong>backward ray-tracing</strong>. Instead of tracing trillions of light rays originating from the accretion disk and hoping they hit the camera, we do the reverse: we shoot invisible "scout" photons from the camera pixel into the curved space.
+                  </p>
+                  <p>
+                    At each step, we solve the equations of motion derived from the Schwarzschild metric using the <strong>4th-Order Runge-Kutta (RK4)</strong> integrator.
+                  </p>
+
+                  <div class="formula-box font-mono">
+                    <div class="formula-title">Equation of Motion (Binet Approximation)</div>
+                    <span class="math">a = -1.5 &middot; h² &middot; r / r⁵</span>
+                  </div>
+
+                  <p class="formula-description">
+                    Where <code>h</code> is the conserved specific angular momentum and <code>r</code> is the distance to the center. This equation pulls the light ray inward, causing it to loop or spiral around the singularity.
+                  </p>
+                  
+                  <div class="physics-card">
+                    <h4>Marching Results</h4>
+                    <ul>
+                      <li><strong>Hit Horizon:</strong> If a ray marches inside $r &lt; r_{s}$, it falls into the black hole and renders black.</li>
+                      <li><strong>Hit Disk:</strong> If it intersects the disk plane, it samples the gas brightness.</li>
+                      <li><strong>Escape:</strong> If it flees to infinity, it samples the background starfield, which is itself warped.</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <!-- STEP 3 -->
+              <div class="accordion-item" data-step="3">
+                <button class="accordion-header">
+                  <span class="step-num font-mono">03</span>
+                  <h3>The Speed Limit of Spacetime</h3>
+                  <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+                <div class="accordion-content">
+                  <p>
+                    The black hole's boundary is the <strong>Event Horizon</strong>. It is the boundary where gravity is so strong that the escape velocity exceeds the speed of light ($c$). Since nothing can travel faster than light, nothing—not even light—can escape.
+                  </p>
+
+                  <div class="interactive-tip">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-amber">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                    </svg>
+                    <span><strong>Try it:</strong> Toggle <strong>Naked Singularity</strong>. This removes the event horizon, allowing you to peek into the central core where light rays twist into infinitely orbiting Einstein rings.</span>
+                  </div>
+
+                  <div class="physics-card">
+                    <h4>Doppler Beaming & Shifting</h4>
+                    <p>
+                      The accretion disk is rotating at relativistic speeds (a significant fraction of light speed). 
+                      Because of this, light from the gas moving <strong>towards</strong> you (the left side of the disk, if rotating counter-clockwise) is compressed or <strong>blueshifted</strong> (hotter, brighter). 
+                      Conversely, the gas moving <strong>away</strong> from you (the right side) is stretched or <strong>redshifted</strong> (cooler, dimmer). This produces the signature brightness asymmetry seen in physical simulations.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- FOOTER DETAILS -->
+          <div class="educational-footer">
+            <div class="footer-row">
+              <span class="label">Metrics:</span>
+              <span class="value font-mono">r_s = 2GM/c²</span>
+            </div>
+            <div class="footer-row">
+              <span class="label">Solver:</span>
+              <span class="value font-mono">Runge-Kutta 4th Order</span>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+    
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
