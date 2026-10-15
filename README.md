@@ -52,6 +52,7 @@ Details, assumptions, and citations: [docs/physics.md](docs/physics.md).
 
 - **Themes:** System (default), Light, or Dark — preference stored in `localStorage` as `bho-theme`. Changing the theme does not alter the scientific render.
 - **Guided tour:** First visit shows a welcome modal. Use **Help** to replay. Progress keys: `bho-tour-done`, `bho-hint-camera`.
+- **Astrophysics Guide:** Educational accordion (lensing, ray marching, horizon/Doppler) lives on [`guide.html`](./guide.html) so the simulator stays compact. Open it from **Guide** in the header.
 - **Snapshot:** Downloads PNG + JSON sidecar with physical parameters.
 
 ## Reproducing a snapshot

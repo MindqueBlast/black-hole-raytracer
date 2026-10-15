@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-theme-pref="system">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Astrophysics Guide — Black Hole Observatory</title>
+    <script>
+      (function () {
+        try {
+          var pref = localStorage.getItem('bho-theme') || 'system';
+          var dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          var theme = pref === 'light' || pref === 'dark' ? pref : (dark ? 'dark' : 'light');
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.dataset.themePref = pref;
+        } catch (e) {
+          document.documentElement.dataset.theme = 'dark';
+          document.documentElement.dataset.themePref = 'system';
+        }
+      })();
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body class="guide-page">
+    <div class="guide-shell">
+      <header class="app-header">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+              <circle cx="12" cy="12" r="9" />
+              <circle cx="12" cy="12" r="3.5" fill="currentColor" fill-opacity="0.25" />
+              <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2" />
+            </svg>
+          </div>
+          <div class="brand-text">
+            <p class="brand-title">BLACK HOLE OBSERVATORY</p>
+            <p class="brand-subtitle">Astrophysics Guide</p>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <div class="theme-switch" role="group" aria-label="Color theme">
+            <button type="button" class="theme-btn" data-theme-option="system" aria-pressed="false" title="System theme">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg>
+              <span>System</span>
+            </button>
+            <button type="button" class="theme-btn" data-theme-option="light" aria-pressed="false" title="Light theme">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+              <span>Light</span>
+            </button>
+            <button type="button" class="theme-btn" data-theme-option="dark" aria-pressed="false" title="Dark theme">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 14.5A8.5 8.5 0 1 1 9.5 3a7 7 0 0 0 11.5 11.5z"/></svg>
+              <span>Dark</span>
+            </button>
+          </div>
+
+          <a class="btn btn-primary" href="/">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 12l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>
+            Open simulator
+          </a>
+        </div>
+      </header>
+
+      <main class="guide-main">
+        <header class="guide-hero">
+          <p class="guide-kicker font-mono">Decoding spacetime distortion</p>
+          <h1>The Astrophysics Breakdown</h1>
+          <p class="guide-lede">
+            The same educational walkthrough from the original app—lensings, ray marching, horizons,
+            and Doppler asymmetry—kept off the workstation so the simulator stays focused.
+          </p>
+        </header>
+
+        <div class="educational-container">
+          <div class="accordion" id="guide-accordion">
+            <div class="accordion-item active" data-step="1">
+              <button type="button" class="accordion-header" aria-expanded="true">
+                <span class="step-num font-mono">01</span>
+                <h2>What are we looking at?</h2>
+                <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+              <div class="accordion-content">
+                <p>
+                  When observing the black hole, you see a glowing flat ring that appears to curve
+                  <strong>above</strong>, <strong>below</strong>, and <strong>across</strong> the central darkness.
+                  This is not a physical cross-shaped ring. It is a flat, circular accretion disk orbiting the equator,
+                  but the black hole’s intense gravity bends the paths of light emitted behind it.
+                </p>
+
+                <div class="interactive-tip">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="16" x2="12" y2="12" />
+                    <line x1="12" y1="8" x2="12.01" y2="8" />
+                  </svg>
+                  <span><strong>Try it:</strong> Open the <a href="/">simulator</a> and drag the canvas to rotate the camera. Notice how the disk stays locked in the equatorial plane while the warped image bends dynamically to face you.</span>
+                </div>
+
+                <div class="physics-card">
+                  <h3>Gravitational lensing</h3>
+                  <p>
+                    Massive objects warp the fabric of spacetime. Light rays, which normally travel in straight lines,
+                    follow those curves. The black hole acts as a colossal gravitational lens, magnifying and redirecting
+                    light from the disk and background structures.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item" data-step="2">
+              <button type="button" class="accordion-header" aria-expanded="false">
+                <span class="step-num font-mono">02</span>
+                <h2>Backward ray-tracing</h2>
+                <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+              <div class="accordion-content">
+                <p>
+                  To render this simulation, the app uses <strong>backward ray-tracing</strong>. Instead of tracing
+                  trillions of light rays originating from the accretion disk and hoping they hit the camera, we shoot
+                  invisible “scout” rays from each camera pixel into curved space.
+                </p>
+                <p>
+                  At each step we integrate a spatial equation of motion derived from Schwarzschild null orbits with a
+                  <strong>4th-order Runge–Kutta (RK4)</strong> integrator.
+                </p>
+
+                <div class="formula-box font-mono">
+                  <div class="formula-title">Equation of motion (Cartesian form)</div>
+                  <span class="math">a = −3 M h² p / r⁵</span>
+                </div>
+
+                <p class="formula-description">
+                  Here <code>M</code> is the black-hole mass, <code>h²</code> is the conserved specific angular
+                  momentum squared at launch, <code>p</code> is position, and <code>r = |p|</code>. When
+                  <code>M → 0</code> the acceleration vanishes and rays travel in straight lines.
+                </p>
+
+                <div class="physics-card">
+                  <h3>Marching results</h3>
+                  <ul>
+                    <li><strong>Hit horizon:</strong> If a ray crosses <em>r</em> &lt; <em>r</em><sub>s</sub> = 2<em>M</em>, it is captured and renders black.</li>
+                    <li><strong>Hit disk:</strong> If it intersects the equatorial disk plane outside the inner edge, it samples gas brightness (with optional Doppler weighting).</li>
+                    <li><strong>Escape:</strong> If it flees beyond the escape radius, it samples the background starfield—itself warped by the path history.</li>
+                    <li><strong>Exhausted:</strong> If the step budget runs out without a decision, the ray stays dark (no starfield fill-in).</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item" data-step="3">
+              <button type="button" class="accordion-header" aria-expanded="false">
+                <span class="step-num font-mono">03</span>
+                <h2>The speed limit of spacetime</h2>
+                <svg class="chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+              <div class="accordion-content">
+                <p>
+                  The black hole’s boundary is the <strong>event horizon</strong>—where gravity is so strong that the
+                  escape speed exceeds the speed of light. Nothing, not even light, can escape once it crosses that surface.
+                </p>
+
+                <div class="interactive-tip tip-amber">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                  </svg>
+                  <span><strong>Try it:</strong> In the simulator, turn off <strong>Horizon cutoff</strong> (or use the Horizon off preset). Capture termination is disabled for visualization—this is <em>not</em> a naked-singularity spacetime metric.</span>
+                </div>
+
+                <div class="physics-card">
+                  <h3>Doppler beaming &amp; shifting</h3>
+                  <p>
+                    The accretion disk rotates at relativistic speeds. Light from gas moving <strong>toward</strong> you
+                    is compressed (<strong>blueshifted</strong>—hotter, brighter). Gas moving <strong>away</strong> is
+                    stretched (<strong>redshifted</strong>—cooler, dimmer). That produces the brightness asymmetry
+                    characteristic of relativistic disk images. Toggle Doppler in the control rail to compare.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <footer class="educational-footer">
+          <div class="footer-row">
+            <span class="label">Horizon</span>
+            <span class="value font-mono">r<sub>s</sub> = 2M</span>
+          </div>
+          <div class="footer-row">
+            <span class="label">Photon sphere</span>
+            <span class="value font-mono">r<sub>ph</sub> = 3M</span>
+          </div>
+          <div class="footer-row">
+            <span class="label">ISCO</span>
+            <span class="value font-mono">r<sub>isco</sub> = 6M</span>
+          </div>
+          <div class="footer-row">
+            <span class="label">Solver</span>
+            <span class="value font-mono">RK4</span>
+          </div>
+          <p class="guide-doc-link">
+            Full numerical contract:
+            <a href="https://github.com/MindqueBlast/black-hole-raytracer/blob/main/docs/physics.md">docs/physics.md</a>
+            ·
+            <a href="/">Back to simulator</a>
+          </p>
+        </footer>
+      </main>
+    </div>
+
+    <script type="module" src="/src/guide.js"></script>
+  </body>
+</html>

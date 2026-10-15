@@ -952,3 +952,265 @@ input[type="range"]::-webkit-slider-thumb {
     max-width: calc(100% - 1.2rem);
   }
 }
+
+/* —— Guide page (educational accordion) —— */
+.guide-page {
+  overflow: auto;
+}
+
+.guide-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.guide-main {
+  width: min(760px, 100%);
+  margin: 0 auto;
+  padding: 1.75rem 1.25rem 3rem;
+}
+
+.guide-hero {
+  margin-bottom: 1.5rem;
+}
+
+.guide-kicker {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 0.45rem;
+}
+
+.guide-hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(1.55rem, 3vw, 2rem);
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.65rem;
+}
+
+.guide-lede {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  max-width: 54ch;
+}
+
+.educational-container {
+  margin-bottom: 1.5rem;
+}
+
+.accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.accordion-item {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  overflow: hidden;
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.accordion-item:hover {
+  border-color: var(--border-strong);
+}
+
+.accordion-item.active {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border));
+  background: color-mix(in srgb, var(--accent-soft) 65%, var(--bg-elevated));
+}
+
+.accordion-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1rem 1.1rem;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.step-num {
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--accent);
+  background: var(--accent-soft);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  flex-shrink: 0;
+}
+
+.accordion-header h2 {
+  font-family: var(--font-display);
+  font-size: 1.02rem;
+  font-weight: 550;
+  flex-grow: 1;
+  margin: 0;
+}
+
+.chevron {
+  color: var(--text-tertiary);
+  transition: transform var(--transition), color var(--transition);
+  flex-shrink: 0;
+}
+
+.accordion-item.active .chevron {
+  transform: rotate(180deg);
+  color: var(--accent);
+}
+
+.accordion-content {
+  max-height: 0;
+  padding: 0 1.1rem;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height var(--transition), padding var(--transition), opacity var(--transition);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.accordion-item.active .accordion-content {
+  max-height: 1200px;
+  padding-bottom: 1.25rem;
+  opacity: 1;
+}
+
+.accordion-content p {
+  margin: 0 0 0.85rem;
+}
+
+.accordion-content a {
+  color: var(--accent);
+}
+
+.interactive-tip {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+  padding: 0.75rem 0.85rem;
+  margin-bottom: 0.85rem;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  color: var(--text-primary);
+  font-size: 0.84rem;
+}
+
+.interactive-tip svg {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+  color: var(--accent);
+}
+
+.interactive-tip.tip-amber {
+  background: var(--amber-soft);
+  border-color: color-mix(in srgb, var(--amber) 30%, transparent);
+}
+
+.interactive-tip.tip-amber svg {
+  color: var(--amber);
+}
+
+.physics-card {
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+}
+
+.physics-card h3 {
+  margin: 0 0 0.45rem;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.physics-card p,
+.physics-card ul {
+  margin: 0;
+  font-size: 0.86rem;
+}
+
+.physics-card ul {
+  padding-left: 1.15rem;
+}
+
+.physics-card li + li {
+  margin-top: 0.35rem;
+}
+
+.formula-box {
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.85rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-app);
+  border: 1px solid var(--border-strong);
+}
+
+.formula-title {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 0.4rem;
+}
+
+.formula-box .math {
+  color: var(--accent);
+  font-size: 0.95rem;
+}
+
+.formula-description {
+  font-size: 0.84rem !important;
+}
+
+.educational-footer {
+  display: grid;
+  gap: 0.45rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.footer-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.82rem;
+}
+
+.footer-row .label {
+  color: var(--text-tertiary);
+}
+
+.footer-row .value {
+  color: var(--text-primary);
+}
+
+.guide-doc-link {
+  margin: 0.75rem 0 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.guide-doc-link a {
+  color: var(--accent);
+}
+
+a.btn {
+  text-decoration: none;
+}
