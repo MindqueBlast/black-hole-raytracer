@@ -15,12 +15,22 @@ export const fragmentShader = `
   uniform float uCameraTilt;
   uniform float uCameraOrbit;
   uniform float uCameraDist;
+  uniform float uEscapeRadius;
   uniform bool uDopplerEnabled;
-  uniform bool uBareSingularity;
+  uniform bool uHorizonEnabled;
 
   varying vec2 vUv;
 
-  // Pseudo-random noise functions
+  const float T_REF = 6000.0;
+  const float SINGULARITY_CUTOFF = 0.1;
+  const int MAX_STEPS = 400;
+
+  // Outcome codes: 0 = continue/composite, 1 = captured, 2 = escaped, 3 = exhausted
+  const int RAY_ACTIVE = 0;
+  const int RAY_CAPTURED = 1;
+  const int RAY_ESCAPED = 2;
+  const int RAY_EXHAUSTED = 3;
+
   float hash(vec2 p) {
     return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
   }
@@ -29,17 +39,14 @@ export const fragmentShader = `
     vec2 i = floor(p);
     vec2 f = fract(p);
     vec2 u = f * f * (3.0 - 2.0 * f);
-    
-    return mix(mix(hash(i + vec2(0.0,0.0)), hash(i + vec2(1.0,0.0)), u.x),
-               mix(hash(i + vec2(0.0,1.0)), hash(i + vec2(1.0,1.0)), u.x), u.y);
+    return mix(mix(hash(i + vec2(0.0, 0.0)), hash(i + vec2(1.0, 0.0)), u.x),
+               mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
   }
 
-  // Fractional Brownian Motion (fBm) noise
   float fbm(vec2 p) {
     float v = 0.0;
     float a = 0.5;
     vec2 shift = vec2(100.0);
-    // Rotate noise octaves to prevent directional artifacts
     mat2 rot = mat2(cos(0.5), sin(0.5), -sin(0.5), cos(0.5));
     for (int i = 0; i < 4; ++i) {
       v += a * noise(p);
@@ -49,20 +56,16 @@ export const fragmentShader = `
     return v;
   }
 
-  // Tanner Helland's Blackbody Color Approximation (1000K to 40000K)
+  // Tanner Helland blackbody chromaticity (1000K–40000K), normalized to [0,1]
   vec3 blackbody(float temp) {
     temp = clamp(temp, 1000.0, 40000.0) / 100.0;
     vec3 color;
-    
-    // Red channel
     if (temp <= 66.0) {
       color.r = 255.0;
     } else {
       color.r = temp - 60.0;
       color.r = 329.698727446 * pow(color.r, -0.1332047592);
     }
-    
-    // Green channel
     if (temp <= 66.0) {
       color.g = temp;
       color.g = 99.4708025861 * log(color.g) - 161.1195681661;
@@ -70,8 +73,6 @@ export const fragmentShader = `
       color.g = temp - 60.0;
       color.g = 288.1221695283 * pow(color.g, -0.0755148492);
     }
-    
-    // Blue channel
     if (temp >= 66.0) {
       color.b = 255.0;
     } else if (temp <= 19.0) {
@@ -80,206 +81,224 @@ export const fragmentShader = `
       color.b = temp - 10.0;
       color.b = 138.5177312231 * log(color.b) - 305.0447927307;
     }
-    
     return clamp(color, 0.0, 255.0) / 255.0;
   }
 
-  // Geodesic Acceleration (Schwarzschild Central Force Model)
-  // a = -1.5 * h^2 * pos / r^5
+  // Cartesian Schwarzschild spatial acceleration: a = -3 M h² p / r⁵
   vec3 get_acc(vec3 p, float h2) {
     float r2 = dot(p, p);
-    float r5 = r2 * r2 * sqrt(r2) + 0.0001; 
-    return -1.5 * h2 * p / r5;
+    float r = sqrt(r2);
+    float r5 = r2 * r2 * r;
+    return -3.0 * uMass * h2 * p / r5;
   }
 
-  // 4th Order Runge-Kutta Integrator Step
   void rk4_step(inout vec3 p, inout vec3 v, float h2, float dt) {
-    vec3 p1 = p;
-    vec3 v1 = v;
-    vec3 a1 = get_acc(p1, h2);
-
-    vec3 p2 = p + 0.5 * dt * v1;
+    vec3 a1 = get_acc(p, h2);
+    vec3 p2 = p + 0.5 * dt * v;
     vec3 v2 = v + 0.5 * dt * a1;
     vec3 a2 = get_acc(p2, h2);
-
     vec3 p3 = p + 0.5 * dt * v2;
     vec3 v3 = v + 0.5 * dt * a2;
     vec3 a3 = get_acc(p3, h2);
-
     vec3 p4 = p + dt * v3;
     vec3 v4 = v + dt * a3;
     vec3 a4 = get_acc(p4, h2);
-
-    p += (dt / 6.0) * (v1 + 2.0 * v2 + 2.0 * v3 + v4);
+    p += (dt / 6.0) * (v + 2.0 * v2 + 2.0 * v3 + v4);
     v += (dt / 6.0) * (a1 + 2.0 * a2 + 2.0 * a3 + a4);
   }
 
-  // Procedural Starfield & Nebula
+  // Same suggestedStep expression as src/physics/geodesic.js
+  float suggested_step(float r, float rs_eff) {
+    float raw = 0.075 * (r - 0.95 * rs_eff);
+    float minDt = 0.012 * max(uMass, 1e-6);
+    float maxDt = 0.25 * max(uMass, 1e-6);
+    return clamp(raw, minDt, maxDt);
+  }
+
+  // Smallest t in [0,1] with |mix(p0,p1,t)| = radius, or -1 if none.
+  float radius_crossing(vec3 p0, vec3 p1, float radius) {
+    float R2 = radius * radius;
+    vec3 d = p1 - p0;
+    float a = dot(d, d);
+    float b = 2.0 * dot(p0, d);
+    float c = dot(p0, p0) - R2;
+    if (a <= 0.0) return -1.0;
+    float disc = b * b - 4.0 * a * c;
+    if (disc < 0.0) return -1.0;
+    float s = sqrt(disc);
+    float tA = (-b - s) / (2.0 * a);
+    float tB = (-b + s) / (2.0 * a);
+    float best = 2.0;
+    if (tA >= 0.0 && tA <= 1.0) best = min(best, tA);
+    if (tB >= 0.0 && tB <= 1.0) best = min(best, tB);
+    return best <= 1.0 ? best : -1.0;
+  }
+
   vec3 get_starfield(vec3 d) {
-    // Generate stars based on spherical direction d
     float star_noise = hash(floor(d.xy * 160.0) + floor(d.z * 160.0));
     float star_val = smoothstep(0.99, 1.0, star_noise);
-    
-    // Star color temperature variance (red giants to blue giants)
     vec3 star_color = mix(vec3(0.5, 0.75, 1.0), vec3(1.0, 0.85, 0.65), hash(floor(d.xz * 40.0)));
     vec3 final_stars = star_color * star_val * 2.0;
-    
-    // Dynamic nebula dust clouds in background
     float nebula = fbm(d.xy * 2.0 + d.z * 1.5) * 0.15;
     vec3 nebula_color = mix(vec3(0.015, 0.005, 0.035), vec3(0.035, 0.005, 0.06), d.y * 0.5 + 0.5);
     nebula_color += vec3(0.07, 0.015, 0.02) * fbm(d.zx * 1.5 + 12.0) * smoothstep(-0.5, 0.5, d.y);
-    
     return final_stars + nebula_color * (1.0 + nebula);
   }
 
   void main() {
-    // Camera settings in GLSL
     float cosTilt = cos(uCameraTilt);
     float sinTilt = sin(uCameraTilt);
     float cosOrbit = cos(uCameraOrbit);
     float sinOrbit = sin(uCameraOrbit);
 
-    // Orthonormal basis for camera
     vec3 camPos = uCameraDist * vec3(cosTilt * cosOrbit, sinTilt, cosTilt * sinOrbit);
     vec3 w = normalize(-camPos);
     vec3 u = normalize(cross(w, vec3(0.0, 1.0, 0.0)));
-    vec3 v = cross(u, w);
+    vec3 vCam = cross(u, w);
 
-    // Aspect ratio corrected coordinates
     float aspect = uResolution.x / uResolution.y;
     vec2 ndc = (gl_FragCoord.xy / uResolution.xy) * 2.0 - 1.0;
     ndc.x *= aspect;
 
-    // Ray direction (fov factor = 2.5)
-    vec3 rayDir = normalize(ndc.x * u + ndc.y * v + 2.5 * w);
+    vec3 rayDir = normalize(ndc.x * u + ndc.y * vCam + 2.5 * w);
 
-    // Marcher setup
     vec3 p = camPos;
     vec3 dir = rayDir;
     float h2 = dot(cross(p, dir), cross(p, dir));
 
-    vec4 accum_color = vec4(0.0);
+    vec3 accum_color = vec3(0.0);
     float transmission = 1.0;
 
-    // Schwarzschild radius
     float rs = 2.0 * uMass;
+    float rs_eff = uHorizonEnabled ? rs : 0.0;
 
-    // Max steps for marching loop
-    const int MAX_STEPS = 180;
-    
-    vec3 p_prev = p;
+    int outcome = RAY_ACTIVE;
+    vec3 escape_dir = dir;
 
     for (int step = 0; step < MAX_STEPS; step++) {
       float r = length(p);
 
-      // Event Horizon Check (unless Naked Singularity is active)
-      if (!uBareSingularity && r < rs) {
-        // Occlude ray by black hole (event horizon absorbs light)
-        accum_color.rgb += transmission * vec3(0.0);
+      if (!uHorizonEnabled && r < SINGULARITY_CUTOFF) {
+        outcome = RAY_CAPTURED;
         transmission = 0.0;
         break;
       }
 
-      // Singularity safety cutoff to prevent division by zero in bare singularity mode
-      if (r < 0.1) {
-        accum_color.rgb += transmission * vec3(0.0);
-        transmission = 0.0;
-        break;
-      }
-
-      // Adaptive step size based on distance from black hole
-      // Smaller steps when closer to horizon, larger steps far away
-      float rs_eff = uBareSingularity ? 0.0 : rs;
-      float dt = clamp(0.075 * (r - 0.95 * rs_eff), 0.012, 0.25);
-
-      // Advance photon ray using Runge-Kutta 4
-      p_prev = p;
+      float dt = suggested_step(r, rs_eff);
+      vec3 p_prev = p;
       rk4_step(p, dir, h2, dt);
+      float r_next = length(p);
 
-      // Accretion disk intersection check (crossing y = 0 plane)
+      float t_horizon = -1.0;
+      if (uHorizonEnabled && length(p_prev) > rs && r_next <= rs) {
+        t_horizon = radius_crossing(p_prev, p, rs);
+        if (t_horizon < 0.0) t_horizon = 1.0;
+      }
+
+      float t_escape = -1.0;
+      if (length(p_prev) < uEscapeRadius && r_next >= uEscapeRadius && dot(p, dir) > 0.0) {
+        t_escape = radius_crossing(p_prev, p, uEscapeRadius);
+        if (t_escape < 0.0) t_escape = 1.0;
+      }
+
+      float t_disk = -1.0;
       if (p_prev.y * p.y < 0.0) {
-        float t = -p_prev.y / (p.y - p_prev.y);
-        vec3 intersect = mix(p_prev, p, t);
+        float dy = p.y - p_prev.y;
+        if (abs(dy) > 1e-12) {
+          float t = -p_prev.y / dy;
+          if (t >= 0.0 && t <= 1.0) t_disk = t;
+        }
+      }
+
+      // Horizon wins over disk/escape on the same segment.
+      if (t_horizon >= 0.0 &&
+          (t_escape < 0.0 || t_horizon <= t_escape) &&
+          (t_disk < 0.0 || t_horizon <= t_disk)) {
+        outcome = RAY_CAPTURED;
+        transmission = 0.0;
+        break;
+      }
+
+      if (t_disk >= 0.0 && (t_escape < 0.0 || t_disk <= t_escape)) {
+        vec3 intersect = mix(p_prev, p, t_disk);
         float r_disk = length(intersect.xz);
 
-        // Check if within accretion disk bounds
-        if (r_disk >= uDiskInner && r_disk <= uDiskOuter) {
-          // Keplerian velocity: v = sqrt(M/r)
-          // Limit Keplerian speed to 0.7c near singularity for stability
-          float v_speed = clamp(sqrt(uMass / r_disk), 0.0, 0.7);
+        // Reject emission at or inside the horizon.
+        if (r_disk > rs && r_disk >= uDiskInner && r_disk <= uDiskOuter && r_disk > 3.0 * uMass) {
+          vec3 L = cross(p_prev, dir);
+          float v2 = dot(dir, dir);
+          float vInf2 = v2 - 2.0 * uMass * h2 / pow(length(p_prev), 3.0);
+          float g = 0.0;
+          bool g_ok = false;
 
-          // Azimuthal rotation direction vector (counter-clockwise)
-          vec3 v_disk_dir = vec3(-intersect.z, 0.0, intersect.x) / r_disk;
-
-          // Normalized backward ray direction
-          vec3 norm_dir = normalize(dir);
-          float cosTheta = dot(norm_dir, v_disk_dir);
-
-          // Doppler Factor (Doppler shift and gravitational redshift combined)
-          // Gravitational potential: 1 - 2M/r
-          float redshift_factor = sqrt(max(0.001, 1.0 - 2.0 * uMass / r_disk));
-          float g = 1.0;
-
+          float base = sqrt(max(0.0, 1.0 - 3.0 * uMass / r_disk));
           if (uDopplerEnabled) {
-            float gamma = 1.0 / sqrt(1.0 - v_speed * v_speed);
-            // In backward ray tracing, dot(v_ray, v_disk) signs flip: (1 + beta * cos)
-            g = redshift_factor / (gamma * (1.0 + v_speed * cosTheta));
+            if (vInf2 > 0.0) {
+              float vInf = sqrt(vInf2);
+              float lambdaY = L.y / vInf;
+              float omega = sqrt(uMass / (r_disk * r_disk * r_disk));
+              float denom = 1.0 - omega * lambdaY;
+              if (denom > 0.0) {
+                g = base / denom;
+                g_ok = true;
+              }
+            }
           } else {
-            g = redshift_factor;
+            g = base;
+            g_ok = true;
           }
 
-          // Disk temperature profile: hotter at the inner edge, cooler at outer
-          // Scale by observed redshift factor g
-          float T_local = 1300.0 + 4800.0 * pow(uDiskInner / r_disk, 0.75);
-          float T_obs = T_local * g;
+          if (g_ok && g > 0.0 && r_disk > uDiskInner) {
+            float r_char = uDiskInner * 1.5;
+            float radial = pow(r_char / r_disk, 0.75);
+            float boundary = pow(max(0.0, 1.0 - sqrt(uDiskInner / r_disk)), 0.25);
+            float T_emit = T_REF * radial * boundary;
+            float T_obs = g * T_emit;
+            float weight = pow(T_obs / T_REF, 4.0);
 
-          // Accretion disk gas density with smooth edges
-          float disk_width = uDiskOuter - uDiskInner;
-          float x_norm = (r_disk - uDiskInner) / disk_width;
-          float density = smoothstep(0.0, 0.12, x_norm) * smoothstep(1.0, 0.35, x_norm);
+            float disk_width = max(uDiskOuter - uDiskInner, 1e-4);
+            float x_norm = (r_disk - uDiskInner) / disk_width;
+            float density = smoothstep(0.0, 0.12, x_norm) * smoothstep(1.0, 0.35, x_norm);
 
-          // Add rotating gas swirl pattern using fBm noise
-          float omega = sqrt(uMass / (r_disk * r_disk * r_disk + 0.001));
-          float phi = atan(intersect.z, intersect.x);
-          float swirl = fbm(vec2(r_disk * 1.8, (phi - uTime * omega * 1.8) * 4.0));
-          density *= (0.3 + 0.7 * swirl);
+            // Artistic emissivity swirl (presentation only); Ω = √(M/r³)
+            float omega = sqrt(uMass / (r_disk * r_disk * r_disk));
+            float phi = atan(intersect.z, intersect.x);
+            float swirl = fbm(vec2(r_disk * 1.8, (phi - uTime * omega) * 4.0));
+            density *= mix(0.4, 1.0, swirl);
 
-          // Compute physical emission using blackbody color and Doppler beaming scaling
-          vec3 disk_rgb = blackbody(T_obs);
-          
-          if (uDopplerEnabled) {
-            // Doppler Beaming scales intensity by g^3.5
-            disk_rgb *= pow(g, 3.5);
-          } else {
-            // Apply mild boost without beaming
-            disk_rgb *= 1.2;
-          }
+            vec3 disk_rgb = blackbody(T_obs) * weight;
 
-          // Volumetric blending of translucent disk layer
-          float alpha = clamp(density * 0.15, 0.0, 1.0);
-          accum_color.rgb += transmission * disk_rgb * alpha;
-          transmission *= (1.0 - alpha);
+            float alpha = clamp(density * 0.18, 0.0, 1.0);
+            accum_color += transmission * disk_rgb * alpha;
+            transmission *= (1.0 - alpha);
 
-          // Early termination if fully opaque
-          if (transmission < 0.01) {
-            transmission = 0.0;
-            break;
+            if (transmission < 0.01) {
+              transmission = 0.0;
+              outcome = RAY_CAPTURED;
+              break;
+            }
           }
         }
       }
 
-      // Check if ray has escaped to infinity
-      if (r > 30.0) {
+      if (t_escape >= 0.0) {
+        outcome = RAY_ESCAPED;
+        escape_dir = normalize(dir);
         break;
       }
     }
 
-    // If ray escaped to infinity, sample the warped background starfield
-    if (transmission > 0.0) {
-      vec3 starfield_color = get_starfield(normalize(dir));
-      accum_color.rgb += transmission * starfield_color;
+    if (outcome == RAY_ACTIVE) {
+      outcome = RAY_EXHAUSTED;
     }
 
-    gl_FragColor = vec4(accum_color.rgb, 1.0);
+    if (outcome == RAY_ESCAPED && transmission > 0.0) {
+      accum_color += transmission * get_starfield(escape_dir);
+    } else if (outcome == RAY_EXHAUSTED && transmission > 0.0) {
+      // Distinct from captured black and from starfield.
+      accum_color += transmission * vec3(0.04, 0.045, 0.06);
+    }
+
+    gl_FragColor = vec4(accum_color, 1.0);
   }
 `;

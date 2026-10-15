@@ -1,12 +1,13 @@
 {
   "name": "black-hole-raytracer",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test tests/geodesic.test.js tests/disk.test.js tests/shader-contract.test.js"
   },
   "devDependencies": {
     "vite": "^8.1.1"
